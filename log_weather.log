@@ -1,0 +1,8 @@
+02/04/2018 07:45:02 PM Found credentials in shared credentials file: ~/.aws/credentials
+02/04/2018 07:45:03 PM Capturing image...
+02/04/2018 07:45:03 PM Uploading an image to S3..
+02/04/2018 07:45:03 PM Starting new HTTPS connection (1): s3.ap-southeast-2.amazonaws.com
+25/04/2018 01:45:24 PM Found credentials in shared credentials file: ~/.aws/credentials
+25/04/2018 01:45:25 PM Cannot connect to pigpio-pi
+25/04/2018 01:48:49 PM Found credentials in shared credentials file: ~/.aws/credentials
+25/04/2018 01:48:50 PM Cannot connect to pigpio-pi

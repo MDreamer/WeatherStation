@@ -1,0 +1,8 @@
+{
+	"Bucket":"ozwassup.com",
+	"ImageFilename":"image.jpg",
+	"pinAnemometer":18, 
+	"pinVane":17,
+	"anemo_dia":9, 
+	"time_interval":5
+}
