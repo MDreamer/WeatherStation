@@ -8,7 +8,7 @@ if hw:
     import RPi.GPIO as GPIO
     import pigpio # http://abyz.co.uk/rpi/pigpio/python.html
 
-logging.basicConfig(filename='log_weather.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 #Wind vane params
 pinWindVane = 17 
@@ -36,38 +36,43 @@ class Vane(threading.Thread):
         self.pinWindVane = pinWindVane
         self.txtDirection= "nothing"
         if hw:
+            self.pi = pigpio.pi() # Connect to Pi.
             self.hwHandling()
             
     #for decoupling and mocking
     def hwHandling(self):
-        pi = pigpio.pi() # Connect to Pi.
-        if not pi.connected:
+        if not self.pi.connected:
             logging.critical('Cannot connect to pigpio-pi')
-        pi.set_mode(self.pinWindVane, pigpio.INPUT) # wind vane connected to this pinWindVane.
-        pi.set_glitch_filter(self.pinWindVane, GLITCH) # Ignore glitches.
-        pi.callback(self.pinWindVane, pigpio.EITHER_EDGE, self.cbf)
+        self.pi.set_mode(self.pinWindVane, pigpio.INPUT) # wind vane connected to this pinWindVane.
+        self.pi.set_glitch_filter(self.pinWindVane, GLITCH) # Ignore glitches.
+        self.pi.callback(self.pinWindVane, pigpio.EITHER_EDGE, self.cbf)
 
     def getDirection(self):
         return self.txtDirection
 
     def cbf(self, gpio, level, tick):
+        
         if level != pigpio.TIMEOUT:    
             edge = pigpio.tickDiff(self.last_tick, tick)
+            
             self.last_tick = tick
             
             if self.fetching_code:
                 if (edge > PRE_US) and (not self.in_code): # Start of a code.
                     self.in_code = True
-    
+                    self.pi.set_watchdog(self.pinWindVane, POST_MS) # Start watchdog.
+                    
                 elif (edge > POST_US) and self.in_code: # End of a code.
                     self.in_code = False
+                    self.pi.set_watchdog(self.pinWindVane, 0) # Cancel watchdog.
                     self.end_of_code()
     
                 elif self.in_code:
-                    #print ('edge to code',edge)
+                    
                     self.code.append(edge)
     
         else:
+            self.pi.set_watchdog(self.pinWindVane, 0) # Cancel watchdog.
             if self.in_code:
                 #Reached end of code, now check of it is valid
                 self.in_code = False
@@ -86,21 +91,21 @@ class Vane(threading.Thread):
     def loopWindVane(self):
         while True:
             logging.debug('Starting reading wind vane')
-            code = []
-            fetching_code = True
-            while fetching_code:
+            self.code = []
+            self.fetching_code = True
+            while self.fetching_code:
                 time.sleep(0.1)
             
             time.sleep(0.5)
-            read_1 = code[:]
+            read_1 = self.code[:]
             done = False
             tries = 0
             while not done:
-                code = []
-                fetching_code = True
-                while fetching_code:
+                self.code = []
+                self.fetching_code = True
+                while self.fetching_code:
                     time.sleep(0.1)
-                read_2 = code[:]
+                read_2 = self.code[:]
                 the_same = self.compare(read_1, read_2)
                 if the_same:
                     #OK reading

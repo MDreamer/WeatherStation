@@ -1,12 +1,11 @@
 #!/usr/bin/python3
- 
 from WindVane import Vane
 import WindVane
 hw=True #"ifndef C"
 
 #for remote debugging
-import sys
-import pydevd; pydevd.settrace('192.168.1.16', port=5678)
+#import sys
+#import pydevd; pydevd.settrace('192.168.1.16', port=5678)
 
 from decimal import Decimal
 from datetime import datetime
@@ -70,42 +69,39 @@ if __name__ == '__main__':
     server = HandlerS3.AWS_S3(config_data["Bucket"],"Compressed_" + config_data["ImageFilename"])
     tMon = threading.Timer(5.0, Monitoring)
     tMon.start()
-    #cam = CameraImage.ImageGen(config_data["ImageFilename"])
-    #cam.start()
-    #anemo = Anemometer.Anemo(config_data["pinAnemometer"], config_data["anemo_dia"], config_data["time_interval"])
-    #anemo.start()
+    cam = CameraImage.ImageGen(config_data["ImageFilename"])
+    cam.start()
+    anemo = Anemometer.Anemo(config_data["pinAnemometer"], config_data["anemo_dia"], config_data["time_interval"])
+    anemo.start()
     vane = WindVane.Vane(config_data["pinVane"])
     vane.start()
-    print ('Vane started')
     
     while True:
         #make sure that the camera is not taking images
         #compress the taken image before sending it to the server
-        #cam.camLock.acquire()
-        #try:   
-        #    compressMe(config_data["ImageFilename"])
-        #    cam.camLock.release()
-        #except Exception as e: #in case image compression failed.. No image, cannot save file?
-        #    logging.critical(str(e)+' failed compressing image')
-        #    cam.camLock.release()
+        cam.camLock.acquire()
+        try:   
+            compressMe(config_data["ImageFilename"])
+            cam.camLock.release()
+        except Exception as e: #in case image compression failed.. No image, cannot save file?
+            logging.critical(str(e)+' failed compressing image')
+            cam.camLock.release()
         
-        txtDirection = vane.getDirection
-        #txtSpeed = round(Decimal(anemo.wind_speed),2) #2 decimal places 
-        
-        print (txtDirection)
+        txtDirection = vane.getDirection()
+        txtSpeed = round(Decimal(anemo.wind_speed),2) #2 decimal places 
         
         f = open('weatherdata.txt', 'w')
         f.write(str(txtDirection))
         f.write('\n')
-        #f.write(str(txtSpeed))
-        #f.write('\n')
+        f.write(str(txtSpeed))
+        f.write('\n')
         str_time = datetime.now().strftime("%H:%M:%S %d-%m-%Y")
         f.write(str(str_time))
         f.write('\n')
         f.close()
         
         blinkFast = True
-        #server.uploadImage()
-        #server.uploadTelemetry()
+        server.uploadImage()
+        server.uploadTelemetry()
         blinkFast = False
-        #time.sleep(300)
+        time.sleep(300)
