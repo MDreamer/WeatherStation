@@ -62,11 +62,9 @@ def Monitoring():
 
 if __name__ == '__main__':
     global blinkFast
-    
-    print ('Vane testing')
-    
+      
     config_data = json.load(open('/home/pi/mel-ws/config.json'))
-    server = HandlerS3.AWS_S3(config_data["Bucket"],"Compressed_" + config_data["ImageFilename"])
+    server = HandlerS3.AWS_S3(config_data["Bucket"], config_data["NodePath"], "Compressed_" + config_data["ImageFilename"])
     tMon = threading.Timer(5.0, Monitoring)
     tMon.start()
     cam = CameraImage.ImageGen(config_data["ImageFilename"])

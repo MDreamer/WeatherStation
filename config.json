@@ -1,4 +1,6 @@
 {
+	"NodeName":"Mel2",
+	"NodePath":"Nodes/Mel2/",
 	"Bucket":"ozwassup.com",
 	"ImageFilename":"image.jpg",
 	"pinAnemometer":18, 
