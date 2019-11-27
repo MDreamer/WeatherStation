@@ -30,7 +30,7 @@ if hw:
     GPIO.setwarnings(False)
     GPIO.setup(CAMLED, GPIO.OUT, initial=False) 
 
-logging.basicConfig(filename='log_weather.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 def compressMe(file):
     filepath = os.path.join(os.getcwd(), file)

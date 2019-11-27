@@ -8,7 +8,7 @@ if hw:
     import RPi.GPIO as GPIO
     import pigpio # http://abyz.co.uk/rpi/pigpio/python.html
 
-logging.basicConfig(filename='log_weather.log', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 #Wind vane params
 pinWindVane = 17 

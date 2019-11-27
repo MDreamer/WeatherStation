@@ -6,7 +6,7 @@ if hw:
     import picamera
 import threading
 
-logging.basicConfig(filename='log_weather.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 class ImageGen(threading.Thread):
     def __init__(self, ImageFilename, res_w=1024, res_h=768, vFlip=True, hFlip=True):

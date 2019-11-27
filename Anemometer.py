@@ -7,7 +7,7 @@ import logging
 if hw:
     import RPi.GPIO as GPIO
 
-logging.basicConfig(filename='log_weather.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 class Anemo(threading.Thread):
     def __init__(self, pinAnemometer, anemo_dia = 9.0, time_interval = 5):

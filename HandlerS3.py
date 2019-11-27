@@ -2,7 +2,7 @@
 import boto3
 import logging
 
-logging.basicConfig(filename='log_weather.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 class AWS_S3:
     def __init__(self, bucket_name, node_path, image_filename = "image.jpg", telemetry_filename = "weatherdata.txt"):
