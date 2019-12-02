@@ -3,6 +3,7 @@ import math
 import threading
 import time
 import logging
+from collections import deque
 
 if hw:
     import RPi.GPIO as GPIO
@@ -89,6 +90,7 @@ class Vane(threading.Thread):
         self.loopWindVane()
 
     def loopWindVane(self):
+        reading_window = deque([])
         while True:
             logging.debug('Starting reading wind vane')
             self.code = []
@@ -151,10 +153,18 @@ class Vane(threading.Thread):
                 dir_num = 0
                 for bit in compass:
                     dir_num = (dir_num << 1) | bit
-                    
-            self.txtDirection = self.numbers_to_direction(dir_num)
-            logging.debug('Finishing reading wind vane, direction: ' + self.txtDirection)
             
+            #25 elements tumbling window
+            reading_window.append(dir_num)
+            if len(reading_window) > 25:
+                reading_window.popleft()
+
+            sum_dir = self.mostFrequent(list(reading_window), len(reading_window))
+
+            #convers numerical direction representation to text
+            self.txtDirection = self.numbers_to_direction(sum_dir)
+            logging.debug('Finishing reading wind vane, direction: ' + self.txtDirection)
+
     def numbers_to_direction(self,argument):
         '''
         0    0    0    0    N
@@ -222,3 +232,33 @@ class Vane(threading.Thread):
             p1[i] = int(round((p1[i]+p2[i])/2.0))
     
         return True
+
+    # frequent element in an array. 
+    def mostFrequent(self, arr, n): 
+    
+        # Sort the array 
+        arr.sort() 
+    
+        # find the max frequency using 
+        # linear traversal 
+        max_count = 1; res = arr[0]; curr_count = 1
+        
+        for i in range(1, n):  
+            if (arr[i] == arr[i - 1]): 
+                curr_count += 1
+                
+            else : 
+                if (curr_count > max_count):  
+                    max_count = curr_count 
+                    res = arr[i - 1] 
+                
+                curr_count = 1
+        
+        # If last element is most frequent 
+        if (curr_count > max_count): 
+        
+            max_count = curr_count 
+            res = arr[n - 1] 
+        
+        return res 
+  
