@@ -1,10 +1,20 @@
 {
-	"NodeName":"Mel2",
-	"NodePath":"Nodes/Mel2/",
+	"HardwareMode":"Davis",
+	"S3WW_Bucket":"data.weatherwatcher.com.au",
+	"StationNumber":150,
+	"NodeName":"Mel1",
+	"NodePath":"Nodes/Mel1/",
 	"Bucket":"ozwassup.com",
 	"ImageFilename":"image.jpg",
 	"pinAnemometer":18, 
 	"pinVane":17,
 	"anemo_dia":9, 
-	"time_interval":5
+	"time_interval":5,
+    "AWSIoTMQTTClient":{
+		"topic": "weatherwatcherprod/observations",
+		"host": "a3ionctk73impq-ats.iot.ap-southeast-2.amazonaws.com",
+		"rootCAPath": "./iot_cert/AmazonRootCA1.pem",
+		"certificatePath": "./iot_cert/d6c74c95a8-certificate.pem.crt",
+		"privateKeyPath":"./iot_cert/d6c74c95a8-private.pem.key"
+	}
 }

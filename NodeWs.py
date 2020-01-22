@@ -18,17 +18,14 @@ import threading
 import CameraImage
 import HandlerS3
 import Anemometer
+import HandlerAWSIoTMQTT
 
-if hw:
-    import RPi.GPIO as GPIO
-    # Set GPIO for camera LED
-    # Use 5 for Model A/B and 32 for Model B+
-    CAMLED = 32 
- 
+#if hw:
+    #import RPi.GPIO as GPIO
+     
     # Set GPIO to output
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
-    GPIO.setup(CAMLED, GPIO.OUT, initial=False) 
+    #GPIO.setmode(GPIO.BCM)
+    #GPIO.setwarnings(False)
 
 logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
@@ -39,41 +36,21 @@ def compressMe(file):
     #85 has no difference in my 6-10mb files and that 65 is the lowest reasonable number
     picture.save("Compressed_"+file,"JPEG",optimize=True,quality=85) 
 
-#creates an indication light that can be visible externally using the 
-#onboard LED of the PCB camera
-blinkFast = False
-def Monitoring():
-    global blinkFast, hw
-    while (True):
-        if blinkFast:
-            if hw:
-                GPIO.output(CAMLED,True) # On
-            time.sleep(0.2)
-            if hw:
-                GPIO.output(CAMLED,False) # Off
-            time.sleep(0.2)
-        else:
-            if hw:
-                GPIO.output(CAMLED,True) # On
-            time.sleep(3)
-            if hw:
-                GPIO.output(CAMLED,False) # Off
-            time.sleep(3)
 
-if __name__ == '__main__':
-    global blinkFast
-      
-    config_data = json.load(open('/home/pi/mel-ws/config.json'))
+if __name__ == '__main__':     
+    #Loads the config
+    script_path = os.path.abspath(os.path.dirname(__file__))
+
+    config_data = json.load(open(os.path.join(script_path, 'config.json')))
     server = HandlerS3.AWS_S3(config_data["Bucket"], config_data["NodePath"], "Compressed_" + config_data["ImageFilename"])
-    tMon = threading.Timer(5.0, Monitoring)
-    tMon.start()
+
     cam = CameraImage.ImageGen(config_data["ImageFilename"])
     cam.start()
-    anemo = Anemometer.Anemo(config_data["pinAnemometer"], config_data["anemo_dia"], config_data["time_interval"])
+    anemo = Anemometer.Anemo(config_data["pinAnemometer"], config_data["anemo_dia"], config_data["time_interval"], config_data['HardwareMode'])
     anemo.start()
-    vane = WindVane.Vane(config_data["pinVane"])
+    vane = WindVane.Vane(config_data["pinVane"], config_data['HardwareMode'])
     vane.start()
-    
+    mqtt = HandlerAWSIoTMQTT.AWS_IoTMQTTClient(config_data["StationNumber"], config_data['AWSIoTMQTTClient']['host'], config_data['AWSIoTMQTTClient']['rootCAPath'], config_data['AWSIoTMQTTClient']['privateKeyPath'], script_path, config_data['AWSIoTMQTTClient']['certificatePath'], config_data['AWSIoTMQTTClient']['topic'])
     while True:
         #make sure that the camera is not taking images
         #compress the taken image before sending it to the server
@@ -98,8 +75,10 @@ if __name__ == '__main__':
         f.write('\n')
         f.close()
         
-        blinkFast = True
         server.uploadImage()
-        server.uploadTelemetry()
-        blinkFast = False
+        server.uploadTelemetry() #for ozwassup
+        #for weather watcher
+        WeatherSummaries = [int(time.time()), round(anemo.wind_speed,1), round(anemo.wind_speed,1), round(anemo.wind_speed,1), round(vane.direction_deg,2)]
+        mqtt.publish_data(WeatherSummaries)
+
         time.sleep(300)

@@ -4,6 +4,8 @@ import threading
 import time
 import logging
 from collections import deque
+import spidev # To communicate with SPI devices
+from numpy import interp	# To scale val
 
 if hw:
     import RPi.GPIO as GPIO
@@ -28,7 +30,7 @@ TOLER_MIN =  (100 - TOLERANCE) / 100.0
 TOLER_MAX =  (100 + TOLERANCE) / 100.0
 
 class Vane(threading.Thread):
-    def __init__(self, pinWindVane):
+    def __init__(self, pinWindVane, typeVane='Holman'):
         threading.Thread.__init__(self)
         self.code = []
         self.fetching_code = False
@@ -36,9 +38,16 @@ class Vane(threading.Thread):
         self.in_code = False
         self.pinWindVane = pinWindVane
         self.txtDirection= "nothing"
+        self.direction_deg = 0
+        self.typeVane = typeVane
         if hw:
-            self.pi = pigpio.pi() # Connect to Pi.
-            self.hwHandling()
+            if self.typeVane == 'Davis':
+                # Start SPI connection
+                self.spi = spidev.SpiDev() # Created an object
+                self.spi.open(0,0)	
+            else: #=Holman
+                self.pi = pigpio.pi() # Connect to Pi.
+                self.hwHandling()
             
     #for decoupling and mocking
     def hwHandling(self):
@@ -87,7 +96,41 @@ class Vane(threading.Thread):
             logging.critical('Error deciphering EOF')
     
     def run(self):
-        self.loopWindVane()
+        
+        if self.typeVane == 'Davis':
+            self.loopWindVaneDavis()
+        else:
+            self.loopWindVane()
+
+    def loopWindVaneDavis(self):
+        reading_window = deque([])
+        while True:
+            output = self.analogInput(0) # Reading from CH0
+            
+            self.direction_deg = interp(output, [0, 1023], [0, 359])
+            
+            #convert the direciton to a 0-16 number so numbers_to_direction can be used
+            direction_16 = int(self.direction_deg / 22.5)
+            
+            #25 elements tumbling window
+            reading_window.append(direction_16)
+            if len(reading_window) > 25:
+                reading_window.popleft()
+
+            sum_dir = self.mostFrequent(list(reading_window), len(reading_window))
+
+            #converts numerical direction representation to text
+            self.txtDirection = self.numbers_to_direction(sum_dir)
+            logging.debug('Finishing reading wind vane, direction: ' + self.txtDirection)
+            #print('Finishing reading wind vane, direction: ' + self.txtDirection)
+            time.sleep(0.5)
+
+    # Read MCP3008 data
+    def analogInput(self, channel):
+        self.spi.max_speed_hz = 1350000
+        adc = self.spi.xfer2([1,(8+channel)<<4,0])
+        data = ((adc[1]&3) << 8) + adc[2]
+        return data
 
     def loopWindVane(self):
         reading_window = deque([])
@@ -148,7 +191,6 @@ class Vane(threading.Thread):
                 else:
                     compass.append(1)
     
-                #TODO: validate direction 
                 #number representation of the direction
                 dir_num = 0
                 for bit in compass:
