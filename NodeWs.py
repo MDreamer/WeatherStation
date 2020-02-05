@@ -42,7 +42,7 @@ if __name__ == '__main__':
     script_path = os.path.abspath(os.path.dirname(__file__))
 
     config_data = json.load(open(os.path.join(script_path, 'config.json')))
-    server = HandlerS3.AWS_S3(config_data["Bucket"], config_data["NodePath"], "Compressed_" + config_data["ImageFilename"])
+    server = HandlerS3.AWS_S3(config_data["StationNumber"], config_data["Bucket"], config_data["NodePath"], "Compressed_" + config_data["ImageFilename"])
 
     cam = CameraImage.ImageGen(config_data["ImageFilename"])
     cam.start()

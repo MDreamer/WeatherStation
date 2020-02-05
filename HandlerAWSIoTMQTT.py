@@ -8,7 +8,7 @@ import os.path #Standard Python Module
 import sys
 
 
-logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+logging.basicConfig(filename='log_weather.log', level=logging.WARNING, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 class AWS_IoTMQTTClient:
     def iotOnlineCallback(self):

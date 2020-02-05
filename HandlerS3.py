@@ -6,7 +6,7 @@ import time
 logging.basicConfig(filename='log_weather.log', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
 class AWS_S3:
-    def __init__(self, bucket_name, node_path, image_filename = "image.jpg", telemetry_filename = "weatherdata.txt"):
+    def __init__(self, StationNumber, bucket_name, node_path, image_filename = "image.jpg", telemetry_filename = "weatherdata.txt"):
         # Return an object and sets the bucket name
         self.session_ozwassup = boto3.session.Session(profile_name='ozwassup')
         self.s3 = self.session_ozwassup.resource('s3')
@@ -16,6 +16,7 @@ class AWS_S3:
         self.node_path = node_path
         self.telemetry_filename =  telemetry_filename
         self.image_filename = image_filename
+        self.StationNumber = StationNumber
 
 #upload the telemetry file to the S3 Bucket
     def uploadTelemetry(self):
@@ -30,11 +31,10 @@ class AWS_S3:
     #upload the compressed image to the S3 Bucket
     def uploadImage(self):
         try:
-            station = 150
             timestamp = str(int(time.time()))
             bucket = 'data.weatherwatcher.com.au'
             photoPath = 'data/photos/'
-            key = photoPath + str(station) + '/' + timestamp + '.jpg'
+            key = photoPath + str(self.StationNumber) + '/' + timestamp + '.jpg'
             tempLocation = self.image_filename
             #tempLocation = 'Compressed_' + 'image.jpg'
             data = open(tempLocation, 'rb')
