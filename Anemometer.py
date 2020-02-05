@@ -21,7 +21,7 @@ class Anemo(threading.Thread):
         threading.Thread.__init__(self)
         if hw:
             # Set GPIO
-            GPIO.setmode(GPIO.BCM)
+            GPIO.setmode(GPIO.BOARD)
             GPIO.setwarnings(False)
             GPIO.setup(pinAnemometer, GPIO.IN, GPIO.PUD_UP)
             GPIO.add_event_detect(pinAnemometer, GPIO.FALLING, callback=self.spin)
@@ -68,6 +68,7 @@ class Anemo(threading.Thread):
             try:
                 # print("handling wind speed event")
                 counterValue = self.countAnemometer
+                self.countAnemometer = 0
                 elapsed = time.time() - counterStartTime
 
                 #reset the counter and interval time

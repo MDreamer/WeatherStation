@@ -30,7 +30,7 @@ TOLER_MIN =  (100 - TOLERANCE) / 100.0
 TOLER_MAX =  (100 + TOLERANCE) / 100.0
 
 class Vane(threading.Thread):
-    def __init__(self, pinWindVane, typeVane='Holman'):
+    def __init__(self, pinWindVane, typeVane='Holman', MCP_conf = '3002'):
         threading.Thread.__init__(self)
         self.code = []
         self.fetching_code = False
@@ -40,11 +40,28 @@ class Vane(threading.Thread):
         self.txtDirection= "nothing"
         self.direction_deg = 0
         self.typeVane = typeVane
+        self.MCP_conf = MCP_conf
         if hw:
             if self.typeVane == 'Davis':
-                # Start SPI connection
-                self.spi = spidev.SpiDev() # Created an object
-                self.spi.open(0,0)	
+                if self.MCP_conf == '3008':
+                    # Start SPI connection
+                    self.spi = spidev.SpiDev() # Created an object
+                    self.spi.open(0,0)
+                elif self.MCP_conf == '3002':                    
+                    GPIO.setwarnings(False)
+                    GPIO.setmode(GPIO.BOARD)
+                    #
+                    self.SPICLK = 11
+                    self.SPIMOSI = 15
+                    self.SPIMISO = 13
+                    self.SPICS = 23
+
+                    # set up the SPI interface pins
+                    GPIO.setup(self.SPIMOSI, GPIO.OUT)
+                    GPIO.setup(self.SPIMISO, GPIO.IN)
+                    GPIO.setup(self.SPICLK, GPIO.OUT)
+                    GPIO.setup(self.SPICS, GPIO.OUT)
+
             else: #=Holman
                 self.pi = pigpio.pi() # Connect to Pi.
                 self.hwHandling()
@@ -102,13 +119,58 @@ class Vane(threading.Thread):
         else:
             self.loopWindVane()
 
+    # read SPI data from MCP3002 chip, 2 possible adc's (0 thru 1)
+    def readadc3002(self, adcnum, clockpin, mosipin, misopin, cspin):
+        if ((adcnum > 1) or (adcnum < 0)):
+            return -1
+        GPIO.output(cspin, True)
+        
+        GPIO.output(clockpin, False)  # start clock low
+        GPIO.output(cspin, False)     # bring CS low
+        
+        commandout = adcnum << 1;
+        commandout |= 0x0D  # start bit + single-ended bit + MSBF bit
+        commandout <<= 4    # we only need to send 4 bits here
+        
+        for i in range(4):
+            if (commandout & 0x80):
+                GPIO.output(mosipin, True)
+            else:
+                GPIO.output(mosipin, False)
+            commandout <<= 1
+            GPIO.output(clockpin, True)
+            GPIO.output(clockpin, False)
+        
+        adcout = 0
+        
+        # read in one null bit and 10 ADC bits
+        for i in range(11):
+            GPIO.output(clockpin, True)
+            GPIO.output(clockpin, False)
+            adcout <<= 1
+            if (GPIO.input(misopin)):
+                adcout |= 0x1
+        GPIO.output(cspin, True)
+        
+        adcout /= 2       # first bit is 'null' so drop it
+        return adcout
+
     def loopWindVaneDavis(self):
         reading_window = deque([])
         while True:
-            output = self.analogInput(0) # Reading from CH0
+
+            if self.MCP_conf == '3008':
+                output = self.analogInput(0) # Reading from CH0
+            elif self.MCP_conf == '3002':             
+                # Read ADC channel 0 for wind direction
+                output = self.readadc3002(0, self.SPICLK, self.SPIMOSI, self.SPIMISO, self.SPICS)
             
             self.direction_deg = interp(output, [0, 1023], [0, 359])
             
+            #offset for Galvin's installation
+            self.direction_deg += 270
+            self.direction_deg %= 360
+
             #convert the direciton to a 0-16 number so numbers_to_direction can be used
             direction_16 = int(self.direction_deg / 22.5)
             
@@ -117,7 +179,9 @@ class Vane(threading.Thread):
             if len(reading_window) > 25:
                 reading_window.popleft()
 
+            
             sum_dir = self.mostFrequent(list(reading_window), len(reading_window))
+            self.direction_deg = sum_dir * 22.5
 
             #converts numerical direction representation to text
             self.txtDirection = self.numbers_to_direction(sum_dir)
